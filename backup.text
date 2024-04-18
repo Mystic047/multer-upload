@@ -1,0 +1,71 @@
+import express, { Express } from 'express';
+import multer from 'multer';
+import { v4 as uuidv4 } from 'uuid';
+import uploadFile from '../handlers';
+
+const DIR = './uploads/';
+
+
+const app: Express = express();
+const PORT = process.env.PORT || 3000;
+
+// Multer storage and fileFilter configuration
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, DIR);
+  },
+  filename: (req, file, cb) => {
+    const fileName = file.originalname.toLowerCase().split(' ').join('-');
+    cb(null, uuidv4() + '-' + fileName);
+  }
+});
+
+const fileFilter = (req: express.Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+    if (file.mimetype === "image/png" || file.mimetype === "image/jpg" || file.mimetype === "image/jpeg") {
+      cb(null, true); 
+        console.log('File Accepted')
+    } else {
+      cb(null, false);
+      console.log('File not Accepted')
+    }
+  };
+  
+
+const upload = multer({ storage, fileFilter });
+
+// API section
+app.post('/upload', upload.single('photo'), uploadFile.uploadFileHandler);
+
+
+app.get('/photo/:uuid', uploadFile.servePhotoHandler);
+
+// app.get('/photo/:uuid', (req, res) => {
+//     const { uuid } = req.params;
+  
+//     // Validate the UUID format to prevent directory traversal or other injection attacks.
+//     if (!uuid.match(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/)) {
+//       return res.status(400).send('Invalid UUID format');
+//     }
+  
+//     fs.readdir(uploadsDir, (err, files) => {
+//       if (err) {
+//         console.error(err);
+//         return res.status(500).send('Server error when reading uploads directory');
+//       }
+  
+//       // Find the first file that starts with the UUID
+//       const file = files.find(f => f.startsWith(uuid));
+//       if (!file) {
+//         return res.status(404).send('Image not found');
+//       }
+  
+//       // Send the image file
+//       const filePath = path.join(uploadsDir, file);
+//       return res.sendFile(filePath);
+//     });
+//   });
+  
+  
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
